@@ -30,6 +30,14 @@ def fetch_anime():
 
     if response.status_code == 200:
         anime_list = response.json()['data']
-        return [{"id": anime["id"], "title": anime["attributes"]["canonicalTitle"]} for anime in anime_list]
+        return [
+            {
+                "id": anime["id"],
+                "title": anime["attributes"]["canonicalTitle"],
+                "synopsis": anime["attributes"]["synopsis"],
+                "posterImage": anime["attributes"]["posterImage"]["medium"],
+            }
+            for anime in anime_list
+        ]
     else:
         raise HTTPException(status_code=response.status_code, detail="Failed to fetch anime list")
