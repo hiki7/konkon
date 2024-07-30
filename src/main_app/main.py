@@ -2,30 +2,32 @@ from fastapi import FastAPI, Request, Response, HTTPException
 from pydantic import BaseModel
 import requests
 from typing import List
+from models import AnimeItem
+from config.db_connect import engine
 
 app = FastAPI()
 
+url = "https://kitsu.io/api/edge/anime"
+headers = {
+    "Accept": "application/vnd.api+json",
+    "Content-Type": "application/vnd.api+json"
+}
 
-class Anime(BaseModel):
-    anime_id: str
-    user_id: str
 
-class AnimeItem(BaseModel):
+# class Anime(BaseModel):
+#     anime_id: str
+#     user_id: str
+
+class AnimeItemResponse(BaseModel):
     id: str
     title: str
-
-class AnimeListResponse(BaseModel):
-    data: List[AnimeItem]
+    synopsis: str
+    poster_image: str
 
 
 # Fetch the list of anime
-@app.get("/anime", response_model=List[AnimeItem])
+@app.get("/anime", response_model=List[AnimeItemResponse])
 def fetch_anime():
-    url = "https://kitsu.io/api/edge/anime"
-    headers = {
-        "Accept": "application/vnd.api+json",
-        "Content-Type": "application/vnd.api+json"
-    }
     response = requests.get(url, headers=headers)
 
     if response.status_code == 200:
@@ -35,7 +37,7 @@ def fetch_anime():
                 "id": anime["id"],
                 "title": anime["attributes"]["canonicalTitle"],
                 "synopsis": anime["attributes"]["synopsis"],
-                "posterImage": anime["attributes"]["posterImage"]["medium"],
+                "poster_image": anime["attributes"]["posterImage"]["medium"],
             }
             for anime in anime_list
         ]
