@@ -11,7 +11,12 @@ class AnimeCreate(SQLModel):
 
 class Anime(AnimeCreate, SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    # title: str
-    # synopsis: str
-    # poster_image: str
+
+
+class AnimeUpdate(SQLModel):
+    title: str | None = None
+    synopsis: str | None = None
+    poster_image: str | None = None
+
+
 
