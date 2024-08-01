@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Optional
 
 from sqlmodel import SQLModel, Field
@@ -19,4 +20,18 @@ class AnimeUpdate(SQLModel):
     poster_image: str | None = None
 
 
+class RoleEnum(str, Enum):
+    ADMIN = "admin"
+    USER = "user"
+
+
+class UserCreate(SQLModel):
+    username: str
+    email: str
+    password: str
+    role: RoleEnum
+
+
+class User(UserCreate, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
 

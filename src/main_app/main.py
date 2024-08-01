@@ -1,11 +1,15 @@
-from fastapi import FastAPI, Request, Response, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from jose import JWTError, jwt
 from pydantic import BaseModel
-import requests
+from datetime import datetime, timedelta
 from typing import List, Optional
-from .models import Anime, AnimeCreate, AnimeUpdate
+from .models import User, UserCreate, Anime, AnimeCreate, AnimeUpdate, RoleEnum
 from .config.db_connect import engine
+from sqlmodel import SQLModel, Session, select
+from passlib.context import CryptContext
 
-from sqlmodel import SQLModel, Session, create_engine, Field, select
+import requests
 
 app = FastAPI()
 
@@ -15,8 +19,106 @@ HEADERS = {
     "Content-Type": "application/vnd.api+json"
 }
 
+SECRET_KEY = "secret"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-@app.post("/save-anime")
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+# JWT Utility functions
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+def get_password_hash(password):
+    return pwd_context.hash(password)
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+# Dependency functions
+def get_user(username: str):
+    with Session(engine) as session:
+        user = session.exec(select(User).where(User.username == username)).first()
+        return user
+
+def authenticate_user(username: str, password: str):
+    user = get_user(username)
+    if not user or not verify_password(password, user.password):
+        return False
+    return user
+
+async def get_current_user(token: str = Depends(oauth2_scheme)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+    user = get_user(username)
+    if user is None:
+        raise credentials_exception
+    return user
+
+async def get_current_active_user(current_user: User = Depends(get_current_user)):
+    if current_user is None:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    return current_user
+
+async def get_admin_user(current_user: User = Depends(get_current_active_user)):
+    if current_user.role != RoleEnum.ADMIN:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+    return current_user
+
+# Routes
+@app.post("/token", response_model=Token)
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = authenticate_user(form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+@app.post("/create-users", response_model=User)
+def create_user(user: UserCreate, dependencies=Depends(get_admin_user)):
+    hashed_password = get_password_hash(user.password)
+    user_data = User(username=user.username, email=user.email, password=hashed_password, role=user.role)
+    with Session(engine) as session:
+        session.add(user_data)
+        session.commit()
+        session.refresh(user_data)
+        return user_data
+
+
+
+@app.post("/save-anime", dependencies=[Depends(get_admin_user)])
 def save_anime():
     response = requests.get(URL, headers=HEADERS)
 
@@ -46,7 +148,7 @@ def get_anime():
         return anime_list
 
 
-@app.post("/create-anime", response_model=Anime)
+@app.post("/create-anime", response_model=Anime, dependencies=[Depends(get_admin_user)])
 def create_anime(anime: AnimeCreate):
     with Session(engine) as session:
         db_anime = Anime.from_orm(anime)
@@ -56,7 +158,7 @@ def create_anime(anime: AnimeCreate):
         return db_anime
 
 
-@app.patch("/anime/{anime_id}", response_model=Anime)
+@app.patch("/anime/{anime_id}", response_model=Anime, dependencies=[Depends(get_admin_user)])
 def update_anime(anime_id: int, anime: AnimeUpdate):
     with Session(engine) as session:
         db_anime = session.get(Anime, anime_id)
@@ -71,7 +173,7 @@ def update_anime(anime_id: int, anime: AnimeUpdate):
     return db_anime
 
 
-@app.delete("/anime/{anime_id}", response_model=Anime)
+@app.delete("/anime/{anime_id}", response_model=Anime, dependencies=[Depends(get_admin_user)])
 def delete_anime(anime_id: int):
     with Session(engine) as session:
         db_anime = session.get(Anime, anime_id)
