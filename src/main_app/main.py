@@ -107,7 +107,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
 
 @app.post("/create-users", response_model=User)
-def create_user(user: UserCreate, dependencies=Depends(get_admin_user)):
+def create_user(user: UserCreate):
     hashed_password = get_password_hash(user.password)
     user_data = User(username=user.username, email=user.email, password=hashed_password, role=user.role)
     with Session(engine) as session:
@@ -128,7 +128,12 @@ def save_anime():
             Anime(
                 title=anime['attributes']['canonicalTitle'],
                 synopsis=anime['attributes']['synopsis'],
-                poster_image=anime['attributes']['posterImage']['medium']
+                poster_image=anime['attributes']['posterImage']['medium'],
+                start_date=anime['attributes']['startDate'],
+                end_date=anime['attributes']['endDate'],
+                status=anime['attributes']['status'],
+                episode_count=anime['attributes']['episodeCount'],
+                show_type=anime['attributes']['showType']
             )
             for anime in anime_list
         ]

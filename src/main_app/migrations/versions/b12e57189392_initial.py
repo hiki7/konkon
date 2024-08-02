@@ -1,8 +1,8 @@
 """initial
 
-Revision ID: b8b1fd579574
+Revision ID: b12e57189392
 Revises: 
-Create Date: 2024-08-01 21:07:39.377001
+Create Date: 2024-08-02 12:09:10.642771
 
 """
 from typing import Sequence, Union
@@ -13,7 +13,7 @@ import sqlmodel
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'b8b1fd579574'
+revision: str = 'b12e57189392'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -25,6 +25,11 @@ def upgrade() -> None:
     sa.Column('title', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('synopsis', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
     sa.Column('poster_image', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.Column('start_date', sa.Date(), nullable=False),
+    sa.Column('end_date', sa.Date(), nullable=False),
+    sa.Column('status', sa.Enum('CURRENT', 'FINISHED', 'TBA', 'UPCOMING', 'UNRELEASED', name='animestatusenum'), nullable=False),
+    sa.Column('episode_count', sa.Integer(), nullable=False),
+    sa.Column('show_type', sa.Enum('ONA', 'OVA', 'TV', 'MOVIE', 'MUSIC', 'SPECIAL', name='animeshowtypeenum'), nullable=False),
     sa.Column('id', sa.Integer(), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )

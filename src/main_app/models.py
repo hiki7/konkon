@@ -1,13 +1,18 @@
-from enum import Enum
 from typing import Optional
-
 from sqlmodel import SQLModel, Field
+from datetime import date
+from enums import RoleEnum, AnimeStatusEnum, AnimeShowTypeEnum
 
 
 class AnimeCreate(SQLModel):
     title: str
     synopsis: str
     poster_image: str
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    status: AnimeStatusEnum
+    episode_count: Optional[int] = None
+    show_type: AnimeShowTypeEnum
 
 
 class Anime(AnimeCreate, SQLModel, table=True):
@@ -15,14 +20,14 @@ class Anime(AnimeCreate, SQLModel, table=True):
 
 
 class AnimeUpdate(SQLModel):
-    title: str | None = None
-    synopsis: str | None = None
-    poster_image: str | None = None
-
-
-class RoleEnum(str, Enum):
-    ADMIN = "admin"
-    USER = "user"
+    title: Optional[str] = None
+    synopsis: Optional[str] = None
+    poster_image: Optional[str] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    status: Optional[AnimeStatusEnum] = None
+    episode_count: Optional[int] = None
+    show_type: Optional[AnimeShowTypeEnum] = None
 
 
 class UserCreate(SQLModel):
