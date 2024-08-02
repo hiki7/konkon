@@ -1,7 +1,7 @@
 from typing import Optional
 from sqlmodel import SQLModel, Field
 from datetime import date
-from enums import RoleEnum, AnimeStatusEnum, AnimeShowTypeEnum
+from .enums import RoleEnum, AnimeStatusEnum, AnimeShowTypeEnum
 
 
 class AnimeCreate(SQLModel):
