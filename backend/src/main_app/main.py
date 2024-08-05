@@ -4,7 +4,8 @@ from jose import JWTError, jwt
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 from typing import List, Optional
-from .models import User, UserCreate, Anime, AnimeCreate, AnimeUpdate, RoleEnum
+from .models import User, UserCreate, Anime, AnimeCreate, AnimeUpdate, UserAnime
+from .enums import RoleEnum, AnimeWatchingEnum
 from .config.db_connect import engine
 from sqlmodel import SQLModel, Session, select
 from passlib.context import CryptContext
@@ -153,7 +154,7 @@ def get_anime():
         return anime_list
 
 
-@app.post("/create-anime", response_model=Anime, dependencies=[Depends(get_admin_user)])
+@app.post("/add-anime", response_model=Anime, dependencies=[Depends(get_admin_user)])
 def create_anime(anime: AnimeCreate):
     with Session(engine) as session:
         db_anime = Anime.from_orm(anime)
@@ -185,3 +186,50 @@ def delete_anime(anime_id: int):
         session.delete(db_anime)
         session.commit()
         return db_anime
+
+
+@app.post("/user/anime", response_model=UserAnime)
+async def add_anime_to_user_list(
+    anime_id: int,
+    status: AnimeWatchingEnum,
+    current_user: User = Depends(get_current_user)
+):
+    if status is None:
+        raise HTTPException(status_code=400, detail="Watch status must be provided.")
+    user_anime = UserAnime(user_id=current_user.id, anime_id=anime_id, watch_status=status)
+    with Session(engine) as session:
+        session.add(user_anime)
+        session.commit()
+        session.refresh(user_anime)
+        return user_anime
+
+
+@app.get("/user/anime", response_model=List[UserAnime])
+async def get_user_anime_list(current_user: User = Depends(get_current_user)):
+    with Session(engine) as session:
+        user_anime_list = session.exec(select(UserAnime).where(UserAnime.user_id == current_user.id)).all()
+        return user_anime_list
+
+
+@app.patch("/user/anime/{user_anime_id}", response_model=UserAnime)
+async def update_user_anime_status(user_anime_id: int, status: AnimeWatchingEnum, current_user: User = Depends(get_current_user)):
+    with Session(engine) as session:
+        user_anime = session.get(UserAnime, user_anime_id)
+        if not user_anime or user_anime.user_id != current_user.id:
+            raise HTTPException(status_code=404, detail="Anime not found in your list!")
+        user_anime.watch_status = status
+        session.add(user_anime)
+        session.commit()
+        session.refresh(user_anime)
+        return user_anime
+
+
+@app.delete("/user/anime/{user_anime_id}", response_model=UserAnime)
+async def delete_anime_from_user_list(user_anime_id: int, current_user: User = Depends(get_current_user)):
+    with Session(engine) as session:
+        user_anime = session.get(UserAnime, user_anime_id)
+        if not user_anime or user_anime.user_id != current_user.id:
+            raise HTTPException(status_code=404, detail="Anime not found in your list!")
+        session.delete(user_anime)
+        session.commit()
+        return user_anime

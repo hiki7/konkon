@@ -21,3 +21,10 @@ class AnimeShowTypeEnum(str, Enum):
     MOVIE = "movie"
     MUSIC = "music"
     SPECIAL = "special"
+
+
+class AnimeWatchingEnum(str, Enum):
+    WATCHING = "watching"
+    COMPLETED = "completed"
+    DROPPED = "dropped"
+    PLAN_TO_WATCH = "plan to watch"

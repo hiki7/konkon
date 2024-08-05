@@ -1,7 +1,16 @@
-from typing import Optional
-from sqlmodel import SQLModel, Field
-from datetime import date
-from .enums import RoleEnum, AnimeStatusEnum, AnimeShowTypeEnum
+from typing import Optional, List, Dict
+from sqlmodel import SQLModel, Field, Relationship
+from .enums import RoleEnum, AnimeStatusEnum, AnimeShowTypeEnum, AnimeWatchingEnum
+
+
+class UserAnime(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id")
+    anime_id: int = Field(foreign_key="anime.id")
+    watch_status: AnimeWatchingEnum
+
+    user: "User" = Relationship(back_populates="anime_list")
+    anime: "Anime" = Relationship(back_populates="user_anime_list")
 
 
 class AnimeCreate(SQLModel):
@@ -17,6 +26,7 @@ class AnimeCreate(SQLModel):
 
 class Anime(AnimeCreate, SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
+    user_anime_list: List[UserAnime] = Relationship(back_populates="anime")
 
 
 class AnimeUpdate(SQLModel):
@@ -39,4 +49,6 @@ class UserCreate(SQLModel):
 
 class User(UserCreate, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
+    anime_list: List[UserAnime] = Relationship(back_populates="user")
+
 
