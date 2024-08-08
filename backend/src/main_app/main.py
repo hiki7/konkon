@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Query
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from pydantic import BaseModel
@@ -167,11 +167,19 @@ def save_anime():
         raise HTTPException(status_code=response.status_code, detail="Failed to save anime!")
 
 @app.get("/anime", response_model=List[AnimeListResponse])
-def get_anime(category_title: Optional[str] = None):
+def get_anime(
+        category_title: Optional[str] = None,
+        page: int = Query(1, ge=1),
+        page_size: int = Query(10, ge=1)
+):
     with Session(engine) as session:
         query = select(Anime)
         if category_title:
             query = query.join(Anime.categories).where(Category.title == category_title)
+
+        offset = (page - 1) * page_size
+        query = query.offset(offset).limit(page_size).order_by(Anime.id.desc())
+
         anime_list = session.exec(query).all()
         return anime_list
 
@@ -252,9 +260,17 @@ async def add_anime_to_user_list(
 
 
 @app.get("/user/anime", response_model=List[UserAnime])
-async def get_user_anime_list(current_user: User = Depends(get_current_user)):
+async def get_user_anime_list(
+        current_user: User = Depends(get_current_user),
+        page: int = Query(1, ge=1),
+        page_size: int = Query(10, ge=1)
+):
     with Session(engine) as session:
-        user_anime_list = session.exec(select(UserAnime).where(UserAnime.user_id == current_user.id)).all()
+        query = select(UserAnime).where(UserAnime.user_id == current_user.id)
+
+        offset = (page - 1) * page_size
+        user_anime_list = session.exec(query.offset(offset).limit(page_size)).all()
+
         return user_anime_list
 
 
