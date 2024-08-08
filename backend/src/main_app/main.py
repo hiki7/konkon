@@ -4,7 +4,7 @@ from jose import JWTError, jwt
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 from typing import List, Optional
-from .models import User, UserCreate, Anime, AnimeCreate, AnimeUpdate, UserAnime
+from .models import *
 from .enums import RoleEnum, AnimeWatchingEnum
 from .config.db_connect import engine
 from sqlmodel import SQLModel, Session, select
@@ -147,11 +147,20 @@ def save_anime():
         raise HTTPException(status_code=response.status_code, detail="Failed to save anime!")
 
 
-@app.get("/anime", response_model=List[Anime])
+@app.get("/anime", response_model=List[AnimeListResponse])
 def get_anime():
     with Session(engine) as session:
         anime_list = session.exec(select(Anime)).all()
         return anime_list
+
+
+@app.get("/anime/{anime_id}", response_model=AnimeDetailResponse)
+def get_anime_detail(anime_id: str):
+    with Session(engine) as session:
+        anime = session.get(Anime, anime_id)
+        if not anime:
+            raise HTTPException(status_code=404, detail="Anime not found")
+        return anime
 
 
 @app.post("/add-anime", response_model=Anime, dependencies=[Depends(get_admin_user)])
