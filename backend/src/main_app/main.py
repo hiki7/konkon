@@ -134,7 +134,9 @@ def save_anime():
                 end_date=anime['attributes']['endDate'],
                 status=anime['attributes']['status'],
                 episode_count=anime['attributes']['episodeCount'],
-                show_type=anime['attributes']['showType']
+                show_type=anime['attributes']['showType'],
+                age_rating=anime['attributes']['ageRating'],
+                age_rating_guide=anime['attributes']['ageRatingGuide']
             )
             for anime in anime_list
         ]

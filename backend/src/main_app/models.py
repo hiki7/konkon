@@ -1,6 +1,6 @@
 from typing import Optional, List, Dict
 from sqlmodel import SQLModel, Field, Relationship
-from .enums import RoleEnum, AnimeStatusEnum, AnimeShowTypeEnum, AnimeWatchingEnum
+from .enums import *
 from pydantic import BaseModel
 
 
@@ -23,6 +23,8 @@ class AnimeCreate(SQLModel):
     status: AnimeStatusEnum
     episode_count: Optional[int] = None
     show_type: AnimeShowTypeEnum
+    age_rating: AnimeAgeRatingEnum
+    age_rating_guide: str
 
 
 class Anime(AnimeCreate, SQLModel, table=True):
@@ -49,6 +51,8 @@ class AnimeUpdate(SQLModel):
     status: Optional[AnimeStatusEnum] = None
     episode_count: Optional[int] = None
     show_type: Optional[AnimeShowTypeEnum] = None
+    age_rating: Optional[AnimeAgeRatingEnum] = None
+    age_rating_guidance: Optional[str] = None
 
 
 class UserCreate(SQLModel):

@@ -28,3 +28,10 @@ class AnimeWatchingEnum(str, Enum):
     COMPLETED = "completed"
     DROPPED = "dropped"
     PLAN_TO_WATCH = "plan to watch"
+
+
+class AnimeAgeRatingEnum(str, Enum):
+    G = "G"
+    PG = "PG"
+    R = "R"
+    R18 = "R18"
