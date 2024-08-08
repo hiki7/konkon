@@ -142,7 +142,6 @@ def save_anime():
                                 description=category['attributes']['description']
                             )
                             session.add(category_obj)
-                            session.commit()
                         anime_categories.append(category_obj)
 
                 anime_obj = Anime(
@@ -167,12 +166,13 @@ def save_anime():
     else:
         raise HTTPException(status_code=response.status_code, detail="Failed to save anime!")
 
-
-
 @app.get("/anime", response_model=List[AnimeListResponse])
-def get_anime():
+def get_anime(category_title: Optional[str] = None):
     with Session(engine) as session:
-        anime_list = session.exec(select(Anime)).all()
+        query = select(Anime)
+        if category_title:
+            query = query.join(Anime.categories).where(Category.title == category_title)
+        anime_list = session.exec(query).all()
         return anime_list
 
 
