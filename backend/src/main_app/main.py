@@ -125,28 +125,48 @@ def save_anime():
 
     if response.status_code == 200:
         anime_list = response.json()['data']
-        anime_objects = [
-            Anime(
-                title=anime['attributes']['canonicalTitle'],
-                synopsis=anime['attributes']['synopsis'],
-                poster_image=anime['attributes']['posterImage']['medium'],
-                start_date=anime['attributes']['startDate'],
-                end_date=anime['attributes']['endDate'],
-                status=anime['attributes']['status'],
-                episode_count=anime['attributes']['episodeCount'],
-                show_type=anime['attributes']['showType'],
-                age_rating=anime['attributes']['ageRating'],
-                age_rating_guide=anime['attributes']['ageRatingGuide']
-            )
-            for anime in anime_list
-        ]
+        anime_objects = []
 
         with Session(engine) as session:
+            for anime in anime_list:
+                anime_categories = []
+                categories_response = requests.get(anime['relationships']['categories']['links']['related'], headers=HEADERS)
+                if categories_response.status_code == 200:
+                    categories_data = categories_response.json()['data']
+                    for category in categories_data:
+                        category_obj = session.exec(select(Category).where(Category.id == int(category['id']))).first()
+                        if not category_obj:
+                            category_obj = Category(
+                                id=int(category['id']),
+                                title=category['attributes']['title'],
+                                description=category['attributes']['description']
+                            )
+                            session.add(category_obj)
+                            session.commit()
+                        anime_categories.append(category_obj)
+
+                anime_obj = Anime(
+                    title=anime['attributes']['canonicalTitle'],
+                    synopsis=anime['attributes']['synopsis'],
+                    poster_image=anime['attributes']['posterImage']['medium'],
+                    start_date=anime['attributes']['startDate'],
+                    end_date=anime['attributes']['endDate'],
+                    status=anime['attributes']['status'],
+                    episode_count=anime['attributes']['episodeCount'],
+                    show_type=anime['attributes']['showType'],
+                    age_rating=anime['attributes']['ageRating'],
+                    age_rating_guide=anime['attributes']['ageRatingGuide'],
+                    categories=anime_categories
+                )
+                anime_objects.append(anime_obj)
+
             session.add_all(anime_objects)
             session.commit()
-        return {"message": "Anime saved!"}
+
+        return {"message": "Anime and categories saved!"}
     else:
         raise HTTPException(status_code=response.status_code, detail="Failed to save anime!")
+
 
 
 @app.get("/anime", response_model=List[AnimeListResponse])
@@ -157,12 +177,28 @@ def get_anime():
 
 
 @app.get("/anime/{anime_id}", response_model=AnimeDetailResponse)
-def get_anime_detail(anime_id: str):
+def get_anime_detail(anime_id: int):
     with Session(engine) as session:
         anime = session.get(Anime, anime_id)
         if not anime:
             raise HTTPException(status_code=404, detail="Anime not found")
-        return anime
+
+        anime_detail = AnimeDetailResponse(
+            id=anime.id,
+            title=anime.title,
+            synopsis=anime.synopsis,
+            poster_image=anime.poster_image,
+            start_date=anime.start_date,
+            end_date=anime.end_date,
+            status=anime.status,
+            episode_count=anime.episode_count,
+            show_type=anime.show_type,
+            age_rating=anime.age_rating,
+            age_rating_guide=anime.age_rating_guide,
+            categories=[CategoryResponse(id=cat.id, title=cat.title, description=cat.description) for cat in anime.categories]
+        )
+
+        return anime_detail
 
 
 @app.post("/add-anime", response_model=Anime, dependencies=[Depends(get_admin_user)])
