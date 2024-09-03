@@ -119,7 +119,7 @@ def create_user(user: UserCreate):
 
 
 
-@app.post("/save-anime", dependencies=[Depends(get_admin_user)])
+@app.post("/save-anime")
 def save_anime():
     response = requests.get(URL, headers=HEADERS)
 

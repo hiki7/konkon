@@ -2,8 +2,7 @@ from logging.config import fileConfig
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 from alembic import context
-from models import *  # noqa
-from config.db_connect import get_url
+from src.main_app.config.db_connect import get_url
 from sqlmodel import SQLModel
 
 config = context.config
