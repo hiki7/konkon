@@ -1,13 +1,17 @@
 version: '3.8'
 
+#in this version of the docker-compose creates its network and every service in this network is able to communicate with each other
+#that's why we don't need to use the --links flag for specifying the services' connections
+#we are launching two services
 services:
   web:
+    #we use build for applications that we need to build, whereas for the apps that are already ready, we need to use the image
     build: .
     ports:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql+psycopg://yadmin:qwerty123@db:5432/konkon
-    depends_on:
+    depends_on: #this means that the web service will be launched after the db service. It can't work without db
       - db
     networks:
       - mynetwork
@@ -26,3 +30,7 @@ services:
 networks:
   mynetwork:
     driver: bridge
+
+#default network for docker containers is bridge
+#in this case we've used the specific network which is mynetwork
+#we can have multiple networks and these networks can be attached to the appropriate services

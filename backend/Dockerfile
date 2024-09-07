@@ -25,3 +25,5 @@ COPY . .
 ENV PYTHONPATH=/code/src
 
 ENTRYPOINT ["uvicorn", "--host", "0.0.0.0", "src.main_app.main:app"]
+#they are exist two commands - CMD and ENTRYPOINT
+#ENTRYPOINT is used for appending the commands, whereas the CMD is used for fully replacing commands
